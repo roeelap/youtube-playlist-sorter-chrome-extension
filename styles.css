@@ -1,4 +1,4 @@
-#yt-playlist-sorter-search {
+.yt-playlist-sorter-search {
   display: block;
   width: calc(100% - 24px);
   margin: 8px 12px 4px 12px;
@@ -13,11 +13,32 @@
   box-sizing: border-box;
 }
 
-#yt-playlist-sorter-search::placeholder {
+.yt-playlist-sorter-search::placeholder {
   color: rgba(255, 255, 255, 0.5);
 }
 
-#yt-playlist-sorter-search:focus {
+.yt-playlist-sorter-search:focus {
   border-color: #3ea6ff;
   background: rgba(255, 255, 255, 0.15);
+}
+
+html[dark] .yt-playlist-sorter-search {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+html:not([dark]) .yt-playlist-sorter-search {
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  color: #0f0f0f;
+}
+
+html:not([dark]) .yt-playlist-sorter-search::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+html:not([dark]) .yt-playlist-sorter-search:focus {
+  border-color: #065fd4;
+  background: rgba(0, 0, 0, 0.08);
 }

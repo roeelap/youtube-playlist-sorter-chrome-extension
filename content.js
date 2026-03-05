@@ -1,5 +1,6 @@
 (function () {
-  const SEARCH_BAR_ID = "yt-playlist-sorter-search";
+  const SEARCH_BAR_CLASS = "yt-playlist-sorter-search";
+  let sheetCounter = 0;
 
   function getPlaylistTitle(item) {
     const titleEl = item.querySelector(".yt-list-item-view-model__title");
@@ -9,12 +10,25 @@
   function isPlaylistSaveSheet(sheetEl) {
     const header = sheetEl.querySelector("yt-panel-header-view-model");
     if (!header) return false;
+
+    const ariaLabel = header.getAttribute("aria-label") || "";
+    if (/save|playlist/i.test(ariaLabel)) return true;
+
+    const createBtn = sheetEl.querySelector(
+      'button[aria-label*="playlist" i], button[aria-label*="Playlist" i]'
+    );
+    if (createBtn) return true;
+
     const titleText = header.textContent.trim().toLowerCase();
     return titleText.includes("save");
   }
 
+  function getList(sheetEl) {
+    return sheetEl.querySelector('yt-list-view-model[role="list"]');
+  }
+
   function sortPlaylistItems(sheetEl) {
-    const list = sheetEl.querySelector('yt-list-view-model[role="list"]');
+    const list = getList(sheetEl);
     if (!list) return;
 
     const items = Array.from(
@@ -39,13 +53,14 @@
 
     const searchInput = document.createElement("input");
     searchInput.type = "text";
-    searchInput.id = SEARCH_BAR_ID;
+    searchInput.id = SEARCH_BAR_CLASS + "-" + (++sheetCounter);
+    searchInput.className = SEARCH_BAR_CLASS;
     searchInput.placeholder = "Search playlists...";
     searchInput.autocomplete = "off";
 
     searchInput.addEventListener("input", () => {
       const query = searchInput.value.toLowerCase().trim();
-      const list = sheetEl.querySelector('yt-list-view-model[role="list"]');
+      const list = getList(sheetEl);
       if (!list) return;
 
       const items = list.querySelectorAll("toggleable-list-item-view-model");
@@ -60,19 +75,24 @@
     searchInput.addEventListener("keypress", (e) => e.stopPropagation());
 
     headerContainer.appendChild(searchInput);
-    requestAnimationFrame(() => searchInput.focus());
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => searchInput.focus());
+    });
   }
 
-  function observeListChanges(sheetEl) {
-    const list = sheetEl.querySelector('yt-list-view-model[role="list"]');
+  function observeListChanges(sheetEl, listObserverRef) {
+    const list = getList(sheetEl);
     if (!list) return;
 
     let debounceTimer;
     const listObserver = new MutationObserver(() => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
+        listObserver.disconnect();
         sortPlaylistItems(sheetEl);
-        const searchInput = sheetEl.querySelector("#" + SEARCH_BAR_ID);
+        listObserver.observe(list, { childList: true });
+
+        const searchInput = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
         if (searchInput) {
           searchInput.dispatchEvent(new Event("input"));
         }
@@ -80,9 +100,11 @@
     });
 
     listObserver.observe(list, { childList: true });
+    listObserverRef.observer = listObserver;
 
     const cleanupObserver = new MutationObserver(() => {
       if (!document.contains(sheetEl)) {
+        clearTimeout(debounceTimer);
         listObserver.disconnect();
         cleanupObserver.disconnect();
       }
@@ -93,7 +115,7 @@
   function handleSheet(sheetEl) {
     if (!isPlaylistSaveSheet(sheetEl)) return;
 
-    const existingSearch = sheetEl.querySelector("#" + SEARCH_BAR_ID);
+    const existingSearch = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
     if (existingSearch) {
       sortPlaylistItems(sheetEl);
       existingSearch.value = "";
@@ -103,7 +125,9 @@
 
     sortPlaylistItems(sheetEl);
     injectSearchBar(sheetEl);
-    observeListChanges(sheetEl);
+
+    const listObserverRef = {};
+    observeListChanges(sheetEl, listObserverRef);
   }
 
   const observer = new MutationObserver((mutations) => {
