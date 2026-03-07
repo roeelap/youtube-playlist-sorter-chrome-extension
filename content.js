@@ -1,6 +1,6 @@
 (function () {
   const SEARCH_BAR_CLASS = "yt-playlist-sorter-search";
-  const DEBUG = true;
+  const DEBUG = false;
   let sheetCounter = 0;
 
   function log(...args) {
