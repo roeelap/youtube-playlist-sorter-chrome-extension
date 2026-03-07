@@ -1,6 +1,6 @@
 (function () {
   const SEARCH_BAR_CLASS = "yt-playlist-sorter-search";
-  const DEBUG = true;
+  const DEBUG = false;
   let sheetCounter = 0;
 
   function log(...args) {
@@ -83,6 +83,13 @@
       return;
     }
 
+    // Guard: only inject once per sheet element
+    if (sheetEl.dataset.ytpsSorted) {
+      log("injectSearchBar: already injected, skipping");
+      return;
+    }
+    sheetEl.dataset.ytpsSorted = "1";
+
     const searchInput = document.createElement("input");
     searchInput.type = "text";
     searchInput.id = SEARCH_BAR_CLASS + "-" + (++sheetCounter);
@@ -163,12 +170,15 @@
 
     log("handleSheet: IS a playlist save sheet!");
 
-    const existingSearch = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
-    if (existingSearch) {
+    // Re-open: sheet already processed, just re-sort and clear search
+    if (sheetEl.dataset.ytpsSorted) {
       log("handleSheet: re-open detected, re-sorting");
       sortPlaylistItems(sheetEl);
-      existingSearch.value = "";
-      existingSearch.dispatchEvent(new Event("input"));
+      const existingSearch = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
+      if (existingSearch) {
+        existingSearch.value = "";
+        existingSearch.dispatchEvent(new Event("input"));
+      }
       return;
     }
 
