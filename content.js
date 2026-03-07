@@ -132,7 +132,58 @@
       e.stopPropagation();
       e.stopImmediatePropagation();
     };
-    searchInput.addEventListener("keydown", stopAll);
+
+    // Keyboard navigation: ↑/↓ to move through visible playlists, Enter to toggle
+    searchInput.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
+
+      const list = getList(sheetEl);
+      if (!list) return;
+
+      const visibleItems = Array.from(
+        list.querySelectorAll("toggleable-list-item-view-model")
+      ).filter((item) => item.style.display !== "none" && !isCreatePlaylistButton(item));
+
+      if (visibleItems.length === 0) return;
+
+      const currentIndex = visibleItems.findIndex(
+        (item) => item.dataset.ytpsHighlighted === "1"
+      );
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (currentIndex >= 0) {
+          const checkbox = visibleItems[currentIndex].querySelector(
+            'input[type="checkbox"], tp-yt-paper-checkbox, ytd-toggle-button-renderer'
+          );
+          if (checkbox) checkbox.click();
+          else visibleItems[currentIndex].click();
+        }
+        return;
+      }
+
+      // Clear current highlight
+      if (currentIndex >= 0) {
+        visibleItems[currentIndex].dataset.ytpsHighlighted = "";
+        visibleItems[currentIndex].classList.remove("ytps-highlighted");
+      }
+
+      let nextIndex;
+      if (e.key === "ArrowDown") {
+        nextIndex = currentIndex < visibleItems.length - 1 ? currentIndex + 1 : 0;
+      } else {
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : visibleItems.length - 1;
+      }
+
+      visibleItems[nextIndex].dataset.ytpsHighlighted = "1";
+      visibleItems[nextIndex].classList.add("ytps-highlighted");
+      visibleItems[nextIndex].scrollIntoView({ block: "nearest" });
+      e.preventDefault();
+    });
+
     searchInput.addEventListener("keyup", stopAll);
     searchInput.addEventListener("keypress", stopAll);
     searchInput.addEventListener("click", stopAll);

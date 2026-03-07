@@ -50,3 +50,16 @@ html[dark] .yt-playlist-sorter-search:focus {
 html[dark] .yt-playlist-sorter-search-empty {
   color: rgba(255, 255, 255, 0.4);
 }
+
+/* Keyboard navigation highlight */
+toggleable-list-item-view-model.ytps-highlighted {
+  background: rgba(62, 166, 255, 0.15) !important;
+  border-radius: 4px;
+  outline: 2px solid rgba(62, 166, 255, 0.5);
+  outline-offset: -2px;
+}
+
+html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
+  background: rgba(6, 95, 212, 0.1) !important;
+  outline-color: rgba(6, 95, 212, 0.4);
+}
