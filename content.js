@@ -51,6 +51,15 @@
     return sheetEl.querySelector('yt-list-view-model[role="list"]');
   }
 
+  function isCreatePlaylistButton(item) {
+    // The "New playlist" / "Create playlist" button is a non-toggleable item
+    // or contains a specific aria-label — keep it pinned to the bottom
+    const btn = item.querySelector('button[aria-label*="playlist" i], button[aria-label*="new" i], button[aria-label*="create" i]');
+    if (btn) return true;
+    const title = getPlaylistTitle(item).toLowerCase();
+    return title.includes("new playlist") || title.includes("create playlist");
+  }
+
   function sortPlaylistItems(sheetEl) {
     const list = getList(sheetEl);
     if (!list) {
@@ -58,20 +67,26 @@
       return;
     }
 
-    const items = Array.from(
+    const allItems = Array.from(
       list.querySelectorAll("toggleable-list-item-view-model")
     );
-    log("sortPlaylistItems: found", items.length, "items");
-    if (items.length === 0) return;
+    log("sortPlaylistItems: found", allItems.length, "items");
+    if (allItems.length === 0) return;
 
-    items.sort((a, b) => {
+    // Separate "New/Create playlist" buttons from regular playlists
+    const pinned = allItems.filter(isCreatePlaylistButton);
+    const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
+
+    playlists.sort((a, b) => {
       const nameA = getPlaylistTitle(a).toLowerCase();
       const nameB = getPlaylistTitle(b).toLowerCase();
       return nameA.localeCompare(nameB);
     });
 
-    items.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted and reordered");
+    // Append sorted playlists first, then pinned buttons at the bottom
+    playlists.forEach((item) => list.appendChild(item));
+    pinned.forEach((item) => list.appendChild(item));
+    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
   }
 
   function injectSearchBar(sheetEl) {
