@@ -118,10 +118,14 @@
       if (!list) return;
 
       const items = list.querySelectorAll("toggleable-list-item-view-model");
+      let visibleCount = 0;
       items.forEach((item) => {
         const title = getPlaylistTitle(item).toLowerCase();
-        item.style.display = title.includes(query) ? "" : "none";
+        const visible = title.includes(query);
+        item.style.display = visible ? "" : "none";
+        if (visible) visibleCount++;
       });
+      noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
     });
 
     const stopAll = (e) => {
@@ -139,6 +143,12 @@
     searchInput.addEventListener("focus", (e) => e.stopPropagation());
 
     headerContainer.appendChild(searchInput);
+
+    const noResults = document.createElement("div");
+    noResults.className = SEARCH_BAR_CLASS + "-empty";
+    noResults.textContent = "No playlists found";
+    noResults.style.display = "none";
+    headerContainer.appendChild(noResults);
     log("injectSearchBar: search bar injected");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => searchInput.focus());
