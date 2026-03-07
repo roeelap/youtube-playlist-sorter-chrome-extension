@@ -51,6 +51,20 @@
     return sheetEl.querySelector('yt-list-view-model[role="list"]');
   }
 
+  function clearFilterStyles(sheetEl) {
+    const list = getList(sheetEl);
+    if (!list) return;
+    const items = list.querySelectorAll("toggleable-list-item-view-model");
+    items.forEach((item) => {
+      item.style.removeProperty("visibility");
+      item.style.removeProperty("height");
+      item.style.removeProperty("overflow");
+      item.style.removeProperty("margin");
+      item.style.removeProperty("padding");
+      item.style.removeProperty("border");
+    });
+  }
+
   function isCreatePlaylistButton(item) {
     // The "New playlist" / "Create playlist" button is a non-toggleable item
     // or contains a specific aria-label — keep it pinned to the bottom
@@ -121,9 +135,23 @@
       let visibleCount = 0;
       items.forEach((item) => {
         const title = getPlaylistTitle(item).toLowerCase();
-        const visible = title.includes(query);
-        item.style.display = visible ? "" : "none";
-        if (visible) visibleCount++;
+        const match = !query || title.includes(query);
+        if (match) {
+          item.style.removeProperty("visibility");
+          item.style.removeProperty("height");
+          item.style.removeProperty("overflow");
+          item.style.removeProperty("margin");
+          item.style.removeProperty("padding");
+          item.style.removeProperty("border");
+          visibleCount++;
+        } else {
+          item.style.visibility = "hidden";
+          item.style.height = "0";
+          item.style.overflow = "hidden";
+          item.style.margin = "0";
+          item.style.padding = "0";
+          item.style.border = "0";
+        }
       });
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
     });
@@ -198,11 +226,11 @@
     // Re-open: sheet already processed, just re-sort and clear search
     if (sheetEl.dataset.ytpsSorted) {
       log("handleSheet: re-open detected, re-sorting");
+      clearFilterStyles(sheetEl);
       sortPlaylistItems(sheetEl);
       const existingSearch = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
       if (existingSearch) {
         existingSearch.value = "";
-        existingSearch.dispatchEvent(new Event("input"));
       }
       return;
     }
