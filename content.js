@@ -126,7 +126,7 @@
     searchInput.placeholder = "Search playlists...";
     searchInput.autocomplete = "off";
 
-    searchInput.addEventListener("input", () => {
+    const triggerFilter = () => {
       const query = searchInput.value.toLowerCase().trim();
       const list = getList(sheetEl);
       if (!list) return;
@@ -154,9 +154,24 @@
         }
       });
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
-    });
+    };
+
+    searchInput.addEventListener("input", triggerFilter);
 
     const stopAll = (e) => {
+      // Escape: clear search and show all items
+      if (e.type === "keydown" && e.key === "Escape") {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        if (searchInput.value.length > 0) {
+          // First Escape clears the search
+          searchInput.value = "";
+          triggerFilter();
+          e.preventDefault();
+        }
+        // Second Escape (empty field) lets the event propagate to close the sheet naturally
+        return;
+      }
       e.stopPropagation();
       e.stopImmediatePropagation();
     };
