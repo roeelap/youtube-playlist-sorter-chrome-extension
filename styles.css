@@ -42,3 +42,15 @@ html:not([dark]) .yt-playlist-sorter-search:focus {
   border-color: #065fd4;
   background: rgba(0, 0, 0, 0.08);
 }
+
+.yt-playlist-sorter-search-empty {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  font-family: "Roboto", "Arial", sans-serif;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+html[dark] .yt-playlist-sorter-search-empty {
+  color: rgba(255, 255, 255, 0.4);
+}
