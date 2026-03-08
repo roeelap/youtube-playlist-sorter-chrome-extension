@@ -63,3 +63,24 @@ html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
   background: rgba(6, 95, 212, 0.1) !important;
   outline-color: rgba(6, 95, 212, 0.4);
 }
+
+/* Video count badge */
+.ytps-count-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-family: "Roboto", "Arial", sans-serif;
+  font-weight: 500;
+  vertical-align: middle;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+html[dark] .ytps-count-badge {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.55);
+}

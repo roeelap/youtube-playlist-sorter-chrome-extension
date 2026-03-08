@@ -14,6 +14,42 @@
     return titleEl ? titleEl.textContent.trim() : "";
   }
 
+  function getPlaylistVideoCount(item) {
+    // YouTube renders video count in various subtitle/metadata elements
+    const subtitleEl = item.querySelector(
+      ".yt-list-item-view-model__subtitle, " +
+      ".ytListItemViewModelSubtitle, " +
+      "[class*='subtitle' i], " +
+      "[class*='video-count' i], " +
+      "[class*='videoCount' i]"
+    );
+    if (subtitleEl) {
+      const text = subtitleEl.textContent.trim();
+      // Match patterns like "12 videos", "1 video", "12"
+      const match = text.match(/^(\d+)\s*(video|vid)?s?$/i);
+      if (match) return parseInt(match[1], 10);
+    }
+    return null;
+  }
+
+  function injectVideoCountBadge(item) {
+    // Don't add twice
+    if (item.dataset.ytpsCountBadge) return;
+    const count = getPlaylistVideoCount(item);
+    if (count === null) return;
+
+    const titleEl = item.querySelector(".yt-list-item-view-model__title");
+    if (!titleEl) return;
+
+    // Create badge
+    const badge = document.createElement("span");
+    badge.className = "ytps-count-badge";
+    badge.textContent = count;
+    badge.setAttribute("aria-label", count + " videos");
+    titleEl.parentNode.insertBefore(badge, titleEl.nextSibling);
+    item.dataset.ytpsCountBadge = "1";
+  }
+
   function isPlaylistSaveSheet(sheetEl) {
     const header = sheetEl.querySelector("yt-panel-header-view-model");
     if (header) {
@@ -100,6 +136,9 @@
     // Append sorted playlists first, then pinned buttons at the bottom
     playlists.forEach((item) => list.appendChild(item));
     pinned.forEach((item) => list.appendChild(item));
+
+    // Inject video count badges on playlist items
+    playlists.forEach((item) => injectVideoCountBadge(item));
     log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
   }
 
