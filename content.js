@@ -74,6 +74,17 @@
     return title.includes("new playlist") || title.includes("create playlist");
   }
 
+  function isItemChecked(item) {
+    // Check for checked checkbox or active toggle state
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    if (checkbox) return checkbox.checked;
+    const paperCheckbox = item.querySelector("tp-yt-paper-checkbox");
+    if (paperCheckbox) return paperCheckbox.hasAttribute("checked") || paperCheckbox.getAttribute("aria-checked") === "true";
+    // Fallback: look for aria-checked on the item itself or its children
+    const checked = item.querySelector('[aria-checked="true"]');
+    return !!checked;
+  }
+
   function sortPlaylistItems(sheetEl) {
     const list = getList(sheetEl);
     if (!list) {
@@ -91,16 +102,31 @@
     const pinned = allItems.filter(isCreatePlaylistButton);
     const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
 
+    // Sort: checked (already saved) playlists bubble to the top, then A-Z within each group
     playlists.sort((a, b) => {
+      const aChecked = isItemChecked(a);
+      const bChecked = isItemChecked(b);
+      if (aChecked && !bChecked) return -1;
+      if (!aChecked && bChecked) return 1;
       const nameA = getPlaylistTitle(a).toLowerCase();
       const nameB = getPlaylistTitle(b).toLowerCase();
       return nameA.localeCompare(nameB);
     });
 
     // Append sorted playlists first, then pinned buttons at the bottom
-    playlists.forEach((item) => list.appendChild(item));
+    playlists.forEach((item) => {
+      item.classList.remove("ytps-first-unchecked");
+      list.appendChild(item);
+    });
     pinned.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
+
+    // Add a visual divider before the first unchecked playlist
+    const firstUnchecked = playlists.find((item) => !isItemChecked(item));
+    if (firstUnchecked && playlists.some((item) => isItemChecked(item))) {
+      firstUnchecked.classList.add("ytps-first-unchecked");
+    }
+
+    log("sortPlaylistItems: sorted", playlists.length, "playlists (checked first), pinned", pinned.length, "buttons");
   }
 
   function injectSearchBar(sheetEl) {
