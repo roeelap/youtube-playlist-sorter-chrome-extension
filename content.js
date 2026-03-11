@@ -289,15 +289,22 @@
 
     log("handleSheet: IS a playlist save sheet!");
 
-    // Re-open: sheet already processed, just re-sort and clear search
+    // Re-open: sheet already processed, just re-sort and reset search state
     if (sheetEl.dataset.ytpsSorted) {
       log("handleSheet: re-open detected, re-sorting");
-      clearFilterStyles(sheetEl);
       sortPlaylistItems(sheetEl);
       const existingSearch = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
       if (existingSearch) {
         existingSearch.value = "";
+        // Dispatch input so filter runs and all hidden items become visible again
+        existingSearch.dispatchEvent(new Event("input"));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => existingSearch.focus());
+        });
       }
+      // Also hide any stale "no results" message
+      const noResults = sheetEl.querySelector("." + SEARCH_BAR_CLASS + "-empty");
+      if (noResults) noResults.style.display = "none";
       return;
     }
 
