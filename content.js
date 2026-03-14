@@ -2,6 +2,7 @@
   const SEARCH_BAR_CLASS = "yt-playlist-sorter-search";
   const DEBUG = false;
   let sheetCounter = 0;
+  const STORAGE_KEY = "ytps_last_search";
 
   function log(...args) {
     if (DEBUG) console.log("[YT-Playlist-Sorter]", ...args);
@@ -128,6 +129,7 @@
 
     const triggerFilter = () => {
       const query = searchInput.value.toLowerCase().trim();
+      try { sessionStorage.setItem(STORAGE_KEY, query); } catch (_) {}
       const list = getList(sheetEl);
       if (!list) return;
 
@@ -188,7 +190,7 @@
 
       const visibleItems = Array.from(
         list.querySelectorAll("toggleable-list-item-view-model")
-      ).filter((item) => item.style.display !== "none" && !isCreatePlaylistButton(item));
+      ).filter((item) => item.style.visibility !== "hidden" && !isCreatePlaylistButton(item));
 
       if (visibleItems.length === 0) return;
 
@@ -245,7 +247,14 @@
     headerContainer.appendChild(noResults);
     log("injectSearchBar: search bar injected");
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => searchInput.focus());
+      requestAnimationFrame(() => {
+        const lastQuery = (() => { try { return sessionStorage.getItem(STORAGE_KEY) || ""; } catch (_) { return ""; } })();
+        if (lastQuery) {
+          searchInput.value = lastQuery;
+          searchInput.dispatchEvent(new Event("input"));
+        }
+        searchInput.focus();
+      });
     });
   }
 
@@ -289,14 +298,17 @@
 
     log("handleSheet: IS a playlist save sheet!");
 
-    // Re-open: sheet already processed, just re-sort and clear search
+    // Re-open: sheet already processed, re-sort and restore last search query
     if (sheetEl.dataset.ytpsSorted) {
       log("handleSheet: re-open detected, re-sorting");
       clearFilterStyles(sheetEl);
       sortPlaylistItems(sheetEl);
       const existingSearch = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
       if (existingSearch) {
-        existingSearch.value = "";
+        const lastQuery = (() => { try { return sessionStorage.getItem(STORAGE_KEY) || ""; } catch (_) { return ""; } })();
+        existingSearch.value = lastQuery;
+        existingSearch.dispatchEvent(new Event("input"));
+        requestAnimationFrame(() => requestAnimationFrame(() => existingSearch.focus()));
       }
       return;
     }
