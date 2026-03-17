@@ -237,6 +237,14 @@
     searchInput.addEventListener("focus", (e) => e.stopPropagation());
 
     headerContainer.appendChild(searchInput);
+    const noResults = document.createElement("div");
+    noResults.className = "yt-playlist-sorter-no-results";
+    noResults.textContent = "No matching playlists";
+    noResults.style.display = "none";
+    noResults.style.padding = "8px 12px";
+    noResults.style.color = "var(--yt-spec-text-secondary)";
+    noResults.style.textAlign = "center";
+    headerContainer.appendChild(noResults);
 
     const noResults = document.createElement("div");
     noResults.className = SEARCH_BAR_CLASS + "-empty";
