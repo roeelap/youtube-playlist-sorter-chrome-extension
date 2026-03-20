@@ -188,7 +188,7 @@
 
       const visibleItems = Array.from(
         list.querySelectorAll("toggleable-list-item-view-model")
-      ).filter((item) => item.style.display !== "none" && !isCreatePlaylistButton(item));
+      ).filter((item) => item.style.visibility !== "hidden" && !isCreatePlaylistButton(item));
 
       if (visibleItems.length === 0) return;
 
