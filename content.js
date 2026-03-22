@@ -2,12 +2,36 @@
   const SEARCH_BAR_CLASS = "yt-playlist-sorter-search";
   const DEBUG = false;
   let sheetCounter = 0;
+  const RECENT_PLAYLISTS_KEY = "ytps-recent-playlists";
+  const MAX_RECENT = 5;
 
   function log(...args) {
     if (DEBUG) console.log("[YT-Playlist-Sorter]", ...args);
   }
 
   log("Content script loaded on", window.location.href);
+
+  // LocalStorage helpers for recent playlists
+  function getRecentPlaylists() {
+    try {
+      const stored = localStorage.getItem(RECENT_PLAYLISTS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function recordPlaylistUsage(playlistName) {
+    try {
+      const recent = getRecentPlaylists();
+      const filtered = recent.filter((name) => name !== playlistName);
+      const updated = [playlistName, ...filtered].slice(0, MAX_RECENT);
+      localStorage.setItem(RECENT_PLAYLISTS_KEY, JSON.stringify(updated));
+      log("Recorded playlist usage:", playlistName);
+    } catch (e) {
+      log("Failed to record playlist usage:", e.message);
+    }
+  }
 
   function getPlaylistTitle(item) {
     const titleEl = item.querySelector(".yt-list-item-view-model__title");
@@ -66,12 +90,15 @@
   }
 
   function isCreatePlaylistButton(item) {
-    // The "New playlist" / "Create playlist" button is a non-toggleable item
-    // or contains a specific aria-label — keep it pinned to the bottom
     const btn = item.querySelector('button[aria-label*="playlist" i], button[aria-label*="new" i], button[aria-label*="create" i]');
     if (btn) return true;
     const title = getPlaylistTitle(item).toLowerCase();
     return title.includes("new playlist") || title.includes("create playlist");
+  }
+
+  function isLikedPlaylist(item) {
+    const title = getPlaylistTitle(item).toLowerCase();
+    return title === "liked videos" || title === "liked" || title === "my liked videos";
   }
 
   function sortPlaylistItems(sheetEl) {
@@ -87,20 +114,42 @@
     log("sortPlaylistItems: found", allItems.length, "items");
     if (allItems.length === 0) return;
 
-    // Separate "New/Create playlist" buttons from regular playlists
+    // Categorize items
     const pinned = allItems.filter(isCreatePlaylistButton);
-    const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
+    const liked = allItems.filter((item) => !isCreatePlaylistButton(item) && isLikedPlaylist(item));
+    const regularPlaylists = allItems.filter(
+      (item) => !isCreatePlaylistButton(item) && !isLikedPlaylist(item)
+    );
 
-    playlists.sort((a, b) => {
+    // Get recent playlists
+    const recentSet = new Set(getRecentPlaylists());
+
+    // Partition regular playlists into recent and others
+    const recent = regularPlaylists.filter((item) =>
+      recentSet.has(getPlaylistTitle(item))
+    );
+    const others = regularPlaylists.filter(
+      (item) => !recentSet.has(getPlaylistTitle(item))
+    );
+
+    // Sort 'others' alphabetically
+    others.sort((a, b) => {
       const nameA = getPlaylistTitle(a).toLowerCase();
       const nameB = getPlaylistTitle(b).toLowerCase();
       return nameA.localeCompare(nameB);
     });
 
-    // Append sorted playlists first, then pinned buttons at the bottom
-    playlists.forEach((item) => list.appendChild(item));
-    pinned.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
+    // Order: liked → recent → sorted → pinned buttons
+    const ordered = [...liked, ...recent, ...others, ...pinned];
+    ordered.forEach((item) => list.appendChild(item));
+
+    log(
+      "sortPlaylistItems: sorted",
+      `liked=${liked.length}`,
+      `recent=${recent.length}`,
+      `others=${others.length}`,
+      `buttons=${pinned.length}`
+    );
   }
 
   function injectSearchBar(sheetEl) {
@@ -112,7 +161,6 @@
       return;
     }
 
-    // Guard: only inject once per sheet element
     if (sheetEl.dataset.ytpsSorted) {
       log("injectSearchBar: already injected, skipping");
       return;
@@ -159,24 +207,20 @@
     searchInput.addEventListener("input", triggerFilter);
 
     const stopAll = (e) => {
-      // Escape: clear search and show all items
       if (e.type === "keydown" && e.key === "Escape") {
         e.stopPropagation();
         e.stopImmediatePropagation();
         if (searchInput.value.length > 0) {
-          // First Escape clears the search
           searchInput.value = "";
           triggerFilter();
           e.preventDefault();
         }
-        // Second Escape (empty field) lets the event propagate to close the sheet naturally
         return;
       }
       e.stopPropagation();
       e.stopImmediatePropagation();
     };
 
-    // Keyboard navigation: ↑/↓ to move through visible playlists, Enter to toggle
     searchInput.addEventListener("keydown", (e) => {
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -202,13 +246,13 @@
           const checkbox = visibleItems[currentIndex].querySelector(
             'input[type="checkbox"], tp-yt-paper-checkbox, ytd-toggle-button-renderer'
           );
+          recordPlaylistUsage(getPlaylistTitle(visibleItems[currentIndex]));
           if (checkbox) checkbox.click();
           else visibleItems[currentIndex].click();
         }
         return;
       }
 
-      // Clear current highlight
       if (currentIndex >= 0) {
         visibleItems[currentIndex].dataset.ytpsHighlighted = "";
         visibleItems[currentIndex].classList.remove("ytps-highlighted");
@@ -249,6 +293,21 @@
     });
   }
 
+  function setupPlaylistClickTracking(sheetEl) {
+    const list = getList(sheetEl);
+    if (!list) return;
+
+    const items = list.querySelectorAll("toggleable-list-item-view-model");
+    items.forEach((item) => {
+      if (!item.dataset.ytpsTracked) {
+        item.addEventListener("click", () => {
+          recordPlaylistUsage(getPlaylistTitle(item));
+        });
+        item.dataset.ytpsTracked = "1";
+      }
+    });
+  }
+
   function observeListChanges(sheetEl) {
     const list = getList(sheetEl);
     if (!list) return;
@@ -265,6 +324,8 @@
         if (searchInput) {
           searchInput.dispatchEvent(new Event("input"));
         }
+
+        setupPlaylistClickTracking(sheetEl);
       }, 100);
     });
 
@@ -289,7 +350,6 @@
 
     log("handleSheet: IS a playlist save sheet!");
 
-    // Re-open: sheet already processed, just re-sort and clear search
     if (sheetEl.dataset.ytpsSorted) {
       log("handleSheet: re-open detected, re-sorting");
       clearFilterStyles(sheetEl);
