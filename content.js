@@ -51,6 +51,37 @@
     return sheetEl.querySelector('yt-list-view-model[role="list"]');
   }
 
+  // Fuzzy search: score based on character sequence match and position
+  function fuzzyScore(text, query) {
+    text = text.toLowerCase();
+    query = query.toLowerCase();
+
+    // Exact substring match — highest score
+    if (text.includes(query)) return 100;
+
+    // Check if all query chars appear in text in order
+    let textIdx = 0;
+    let queryIdx = 0;
+    let score = 0;
+    let consecutiveMatches = 0;
+
+    while (textIdx < text.length && queryIdx < query.length) {
+      if (text[textIdx] === query[queryIdx]) {
+        queryIdx++;
+        consecutiveMatches++;
+        // Bonus for consecutive char matches (e.g., "my pl" in "MyPlaylists")
+        score += 10 + (consecutiveMatches * 2);
+      } else {
+        consecutiveMatches = 0;
+        score -= 1; // Penalty for skipped chars
+      }
+      textIdx++;
+    }
+
+    // All query chars found in order = match
+    return queryIdx === query.length ? Math.max(1, score) : 0;
+  }
+
   function clearFilterStyles(sheetEl) {
     const list = getList(sheetEl);
     if (!list) return;
@@ -127,15 +158,20 @@
     searchInput.autocomplete = "off";
 
     const triggerFilter = () => {
-      const query = searchInput.value.toLowerCase().trim();
+      const query = searchInput.value.trim();
       const list = getList(sheetEl);
       if (!list) return;
 
       const items = list.querySelectorAll("toggleable-list-item-view-model");
+      const scored = Array.from(items).map((item) => {
+        const title = getPlaylistTitle(item);
+        const score = !query ? 1 : fuzzyScore(title, query);
+        return { item, score, title };
+      });
+
       let visibleCount = 0;
-      items.forEach((item) => {
-        const title = getPlaylistTitle(item).toLowerCase();
-        const match = !query || title.includes(query);
+      scored.forEach(({ item, score }) => {
+        const match = score > 0;
         if (match) {
           item.style.removeProperty("visibility");
           item.style.removeProperty("height");
@@ -153,6 +189,13 @@
           item.style.border = "0";
         }
       });
+
+      // Re-sort visible items by fuzzy match score (highest first)
+      const visibleByScore = scored
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score);
+      visibleByScore.forEach(({ item }) => list.appendChild(item));
+
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
     };
 
