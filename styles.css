@@ -63,3 +63,35 @@ html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
   background: rgba(6, 95, 212, 0.1) !important;
   outline-color: rgba(6, 95, 212, 0.4);
 }
+
+/* Sort mode toggle button */
+.yt-playlist-sorter-search-sort-toggle {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  padding: 6px 10px;
+  background: rgba(6, 95, 212, 0.2);
+  border: 1px solid rgba(6, 95, 212, 0.4);
+  border-radius: 4px;
+  color: #065fd4;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.yt-playlist-sorter-search-sort-toggle:hover {
+  background: rgba(6, 95, 212, 0.3);
+  border-color: rgba(6, 95, 212, 0.6);
+}
+
+html[dark] .yt-playlist-sorter-search-sort-toggle {
+  background: rgba(62, 166, 255, 0.2);
+  border-color: rgba(62, 166, 255, 0.4);
+  color: #3ea6ff;
+}
+
+html[dark] .yt-playlist-sorter-search-sort-toggle:hover {
+  background: rgba(62, 166, 255, 0.3);
+  border-color: rgba(62, 166, 255, 0.6);
+}
