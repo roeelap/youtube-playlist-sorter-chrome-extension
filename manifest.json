@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Playlist Sorter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sorts YouTube playlists alphabetically and adds a search bar to the 'Save to playlist' dropdown.",
   "permissions": [],
   "content_scripts": [

@@ -10,7 +10,11 @@
   log("Content script loaded on", window.location.href);
 
   function getPlaylistTitle(item) {
-    const titleEl = item.querySelector(".yt-list-item-view-model__title");
+    // YouTube renamed BEM-style classes (yt-list-item-view-model__title) to
+    // camelCase (ytListItemViewModelTitle) — support both markups
+    const titleEl = item.querySelector(
+      ".yt-list-item-view-model__title, .ytListItemViewModelTitle"
+    );
     return titleEl ? titleEl.textContent.trim() : "";
   }
 
@@ -188,7 +192,10 @@
 
       const visibleItems = Array.from(
         list.querySelectorAll("toggleable-list-item-view-model")
-      ).filter((item) => item.style.display !== "none" && !isCreatePlaylistButton(item));
+      ).filter(
+        (item) =>
+          item.style.visibility !== "hidden" && !isCreatePlaylistButton(item)
+      );
 
       if (visibleItems.length === 0) return;
 
