@@ -38,7 +38,7 @@
       return true;
     }
 
-    const list = sheetEl.querySelector('yt-list-view-model[role="list"]');
+    const list = getList(sheetEl);
     if (list) {
       const toggleItems = list.querySelectorAll("toggleable-list-item-view-model");
       if (toggleItems.length > 0) {
@@ -52,7 +52,9 @@
   }
 
   function getList(sheetEl) {
-    return sheetEl.querySelector('yt-list-view-model[role="list"]');
+    // Don't require role="list" — YouTube changed it to role="menu" once
+    // already, and the tag alone identifies the playlist list
+    return sheetEl.querySelector("yt-list-view-model");
   }
 
   function clearFilterStyles(sheetEl) {
