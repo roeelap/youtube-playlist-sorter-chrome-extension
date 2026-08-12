@@ -324,23 +324,37 @@
     log("waitForSheetContent: sheet empty, watching for children...");
     let attempts = 0;
     const maxAttempts = 30;
+    let timeoutHandle = null;
+    let contentObserver = null;
 
-    const contentObserver = new MutationObserver(() => {
+    const cleanup = () => {
+      if (contentObserver) {
+        contentObserver.disconnect();
+        contentObserver = null;
+      }
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+    };
+
+    contentObserver = new MutationObserver(() => {
       attempts++;
       if (isPlaylistSaveSheet(sheetEl)) {
         log("waitForSheetContent: content appeared after", attempts, "mutations");
-        contentObserver.disconnect();
+        cleanup();
         handleSheet(sheetEl);
       } else if (attempts >= maxAttempts) {
         log("waitForSheetContent: gave up after", maxAttempts, "mutations");
-        contentObserver.disconnect();
+        cleanup();
       }
     });
 
     contentObserver.observe(sheetEl, { childList: true, subtree: true });
 
-    setTimeout(() => {
-      contentObserver.disconnect();
+    timeoutHandle = setTimeout(() => {
+      log("waitForSheetContent: timeout cleanup");
+      cleanup();
     }, 5000);
   }
 
