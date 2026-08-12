@@ -132,7 +132,8 @@
     searchInput.placeholder = "Search playlists...";
     searchInput.autocomplete = "off";
 
-    const triggerFilter = () => {
+    let filterDebounceTimer;
+    const triggerFilterRaw = () => {
       const query = searchInput.value.toLowerCase().trim();
       const list = getList(sheetEl);
       if (!list) return;
@@ -160,6 +161,12 @@
         }
       });
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
+    };
+
+    const triggerFilter = () => {
+      clearTimeout(filterDebounceTimer);
+      // Debounce to 50ms for better performance on large playlists
+      filterDebounceTimer = setTimeout(triggerFilterRaw, 50);
     };
 
     searchInput.addEventListener("input", triggerFilter);
