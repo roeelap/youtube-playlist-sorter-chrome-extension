@@ -63,3 +63,15 @@ html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
   background: rgba(6, 95, 212, 0.1) !important;
   outline-color: rgba(6, 95, 212, 0.4);
 }
+
+/* Result counter */
+.yt-playlist-sorter-counter {
+  font-size: 12px;
+  padding: 4px 12px 8px 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-family: "Roboto", "Arial", sans-serif;
+}
+
+html[dark] .yt-playlist-sorter-counter {
+  color: rgba(255, 255, 255, 0.6);
+}

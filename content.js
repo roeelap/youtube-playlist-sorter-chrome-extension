@@ -132,10 +132,22 @@
     searchInput.placeholder = "Search playlists...";
     searchInput.autocomplete = "off";
 
+    // Restore last search from localStorage
+    const lastSearch = localStorage.getItem("ytps-last-search") || "";
+    searchInput.value = lastSearch;
+
+    // Create result counter element
+    const resultCounter = document.createElement("div");
+    resultCounter.className = "yt-playlist-sorter-counter";
+    resultCounter.style.display = "none";
+
     const triggerFilter = () => {
       const query = searchInput.value.toLowerCase().trim();
       const list = getList(sheetEl);
       if (!list) return;
+
+      // Save search to localStorage
+      localStorage.setItem("ytps-last-search", query);
 
       const items = list.querySelectorAll("toggleable-list-item-view-model");
       let visibleCount = 0;
@@ -159,6 +171,15 @@
           item.style.border = "0";
         }
       });
+      
+      // Update counter
+      if (query.length > 0) {
+        resultCounter.textContent = visibleCount === 0 ? "No playlists found" : `${visibleCount} playlist${visibleCount === 1 ? "" : "s"} found`;
+        resultCounter.style.display = "block";
+      } else {
+        resultCounter.style.display = "none";
+      }
+      
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
     };
 
