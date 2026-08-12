@@ -1,7 +1,21 @@
 (function () {
   const SEARCH_BAR_CLASS = "yt-playlist-sorter-search";
+  const SORT_ORDER_CLASS = "yt-playlist-sorter-sort-toggle";
   const DEBUG = false;
   let sheetCounter = 0;
+  let sortOrder = "asc"; // "asc" or "desc"
+
+  // Load sort preference from localStorage
+  function getSortOrder() {
+    return localStorage.getItem("ytps_sortOrder") || "asc";
+  }
+
+  function setSortOrder(order) {
+    sortOrder = order;
+    localStorage.setItem("ytps_sortOrder", order);
+  }
+
+  sortOrder = getSortOrder();
 
   function log(...args) {
     if (DEBUG) console.log("[YT-Playlist-Sorter]", ...args);
@@ -100,7 +114,8 @@
     playlists.sort((a, b) => {
       const nameA = getPlaylistTitle(a).toLowerCase();
       const nameB = getPlaylistTitle(b).toLowerCase();
-      return nameA.localeCompare(nameB);
+      const cmp = nameA.localeCompare(nameB);
+      return sortOrder === "asc" ? cmp : -cmp;
     });
 
     // Append sorted playlists first, then pinned buttons at the bottom
@@ -245,7 +260,27 @@
     searchInput.addEventListener("pointerup", stopAll);
     searchInput.addEventListener("focus", (e) => e.stopPropagation());
 
+    // Add sort order toggle button
+    const sortToggle = document.createElement("button");
+    sortToggle.className = SORT_ORDER_CLASS;
+    sortToggle.title = "Toggle sort order (A→Z / Z→A)";
+    sortToggle.textContent = sortOrder === "asc" ? "A→Z" : "Z→A";
+    sortToggle.style.marginLeft = "8px";
+    sortToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      const newOrder = sortOrder === "asc" ? "desc" : "asc";
+      setSortOrder(newOrder);
+      sortToggle.textContent = newOrder === "asc" ? "A→Z" : "Z→A";
+      sortPlaylistItems(sheetEl);
+      const searchInput2 = sheetEl.querySelector("." + SEARCH_BAR_CLASS);
+      if (searchInput2) {
+        searchInput2.dispatchEvent(new Event("input"));
+      }
+    });
+
     headerContainer.appendChild(searchInput);
+    headerContainer.appendChild(sortToggle);
 
     const noResults = document.createElement("div");
     noResults.className = SEARCH_BAR_CLASS + "-empty";
@@ -324,23 +359,37 @@
     log("waitForSheetContent: sheet empty, watching for children...");
     let attempts = 0;
     const maxAttempts = 30;
+    let timeoutHandle = null;
+    let contentObserver = null;
 
-    const contentObserver = new MutationObserver(() => {
+    const cleanup = () => {
+      if (contentObserver) {
+        contentObserver.disconnect();
+        contentObserver = null;
+      }
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+    };
+
+    contentObserver = new MutationObserver(() => {
       attempts++;
       if (isPlaylistSaveSheet(sheetEl)) {
         log("waitForSheetContent: content appeared after", attempts, "mutations");
-        contentObserver.disconnect();
+        cleanup();
         handleSheet(sheetEl);
       } else if (attempts >= maxAttempts) {
         log("waitForSheetContent: gave up after", maxAttempts, "mutations");
-        contentObserver.disconnect();
+        cleanup();
       }
     });
 
     contentObserver.observe(sheetEl, { childList: true, subtree: true });
 
-    setTimeout(() => {
-      contentObserver.disconnect();
+    timeoutHandle = setTimeout(() => {
+      log("waitForSheetContent: timeout cleanup");
+      cleanup();
     }, 5000);
   }
 
