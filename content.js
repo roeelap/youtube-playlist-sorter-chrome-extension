@@ -137,7 +137,9 @@
       const list = getList(sheetEl);
       if (!list) return;
 
-      const items = list.querySelectorAll("toggleable-list-item-view-model");
+      const items = Array.from(list.querySelectorAll("toggleable-list-item-view-model"))
+        .filter((item) => !isCreatePlaylistButton(item));
+      const totalCount = items.length;
       let visibleCount = 0;
       items.forEach((item) => {
         const title = getPlaylistTitle(item).toLowerCase();
@@ -159,6 +161,16 @@
           item.style.border = "0";
         }
       });
+
+      // Update count badge: show "X of Y" when searching, just "Y" when idle
+      if (query.length > 0) {
+        countBadge.textContent = visibleCount + " of " + totalCount;
+        countBadge.style.display = "inline";
+      } else {
+        countBadge.textContent = totalCount > 0 ? totalCount : "";
+        countBadge.style.display = totalCount > 0 ? "inline" : "none";
+      }
+
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
     };
 
@@ -245,13 +257,26 @@
     searchInput.addEventListener("pointerup", stopAll);
     searchInput.addEventListener("focus", (e) => e.stopPropagation());
 
-    headerContainer.appendChild(searchInput);
+    // Wrapper to hold input + count badge on same line
+    const searchWrapper = document.createElement("div");
+    searchWrapper.className = SEARCH_BAR_CLASS + "-wrapper";
+
+    const countBadge = document.createElement("span");
+    countBadge.className = SEARCH_BAR_CLASS + "-count";
+    countBadge.style.display = "none";
+
+    searchWrapper.appendChild(searchInput);
+    searchWrapper.appendChild(countBadge);
+    headerContainer.appendChild(searchWrapper);
 
     const noResults = document.createElement("div");
     noResults.className = SEARCH_BAR_CLASS + "-empty";
     noResults.textContent = "No playlists found";
     noResults.style.display = "none";
     headerContainer.appendChild(noResults);
+
+    // Trigger once to populate initial count
+    triggerFilter();
     log("injectSearchBar: search bar injected");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => searchInput.focus());

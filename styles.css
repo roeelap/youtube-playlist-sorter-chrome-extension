@@ -63,3 +63,31 @@ html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
   background: rgba(6, 95, 212, 0.1) !important;
   outline-color: rgba(6, 95, 212, 0.4);
 }
+
+/* Search wrapper: input + count badge */
+.yt-playlist-sorter-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 8px 12px 0 12px;
+}
+
+.yt-playlist-sorter-search-wrapper .yt-playlist-sorter-search {
+  margin: 0;
+  width: 100%;
+  padding-right: 48px; /* make room for badge */
+}
+
+.yt-playlist-sorter-search-count {
+  position: absolute;
+  right: 10px;
+  font-size: 11px;
+  font-family: "Roboto", "Arial", sans-serif;
+  color: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+html[dark] .yt-playlist-sorter-search-count {
+  color: rgba(255, 255, 255, 0.4);
+}
