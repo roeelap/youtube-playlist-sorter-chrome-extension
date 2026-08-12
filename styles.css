@@ -63,3 +63,18 @@ html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
   background: rgba(6, 95, 212, 0.1) !important;
   outline-color: rgba(6, 95, 212, 0.4);
 }
+
+/* Reset button styling */
+.yt-playlist-sorter-search-reset {
+  transition: all 0.2s ease;
+}
+
+.yt-playlist-sorter-search-reset:hover {
+  transform: rotate(180deg);
+}
+
+.yt-playlist-sorter-search-sort-mode-indicator {
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}

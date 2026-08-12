@@ -247,6 +247,42 @@
 
     headerContainer.appendChild(searchInput);
 
+// Add reset button
+    const resetBtn = document.createElement("button");
+    resetBtn.className = SEARCH_BAR_CLASS + "-reset";
+    resetBtn.setAttribute("aria-label", "Reset all sorting preferences and cache");
+    resetBtn.title = "Reset (⌘+Shift+R)";
+    resetBtn.textContent = "⟳";
+    resetBtn.style.cssText = `
+      position: absolute;
+      right: 8px;
+      top: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: inherit;
+      padding: 4px;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    `;
+    
+    resetBtn.addEventListener("mouseenter", () => resetBtn.style.opacity = "1");
+    resetBtn.addEventListener("mouseleave", () => resetBtn.style.opacity = "0.6");
+    
+    resetBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (confirm("Reset all sorting preferences, search history, and muted playlists?")) {
+        localStorage.removeItem(STORAGE_KEY_SORT_MODE);
+        localStorage.removeItem(STORAGE_KEY_SORT_REVERSE);
+        localStorage.removeItem("ytps-muted-playlists");
+        localStorage.removeItem("ytps-last-search");
+        alert("Reset complete! Refresh the page to apply.");
+      }
+    });
+
+    headerContainer.appendChild(resetBtn);
+
     const noResults = document.createElement("div");
     noResults.className = SEARCH_BAR_CLASS + "-empty";
     noResults.textContent = "No playlists found";
