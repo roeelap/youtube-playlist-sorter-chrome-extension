@@ -18,6 +18,22 @@
     return titleEl ? titleEl.textContent.trim() : "";
   }
 
+
+  function fuzzyMatch(text, pattern) {
+    // Simple fuzzy match: all pattern chars appear in text in order
+    // "my pl" matches "My Playlists" (case-insensitive)
+    pattern = pattern.toLowerCase();
+    text = text.toLowerCase();
+    
+    let patternIdx = 0;
+    for (let i = 0; i < text.length && patternIdx < pattern.length; i++) {
+      if (text[i] === pattern[patternIdx]) {
+        patternIdx++;
+      }
+    }
+    return patternIdx === pattern.length;
+  }
+
   function isPlaylistSaveSheet(sheetEl) {
     const header = sheetEl.querySelector("yt-panel-header-view-model");
     if (header) {
@@ -140,8 +156,8 @@
       const items = list.querySelectorAll("toggleable-list-item-view-model");
       let visibleCount = 0;
       items.forEach((item) => {
-        const title = getPlaylistTitle(item).toLowerCase();
-        const match = !query || title.includes(query);
+        const title = getPlaylistTitle(item);
+        const match = !query || fuzzyMatch(title, query);
         if (match) {
           item.style.removeProperty("visibility");
           item.style.removeProperty("height");
