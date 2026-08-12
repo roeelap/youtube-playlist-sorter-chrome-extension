@@ -80,6 +80,44 @@
     return title.includes("new playlist") || title.includes("create playlist");
   }
 
+
+  // Fuzzy matching with smart scoring
+  // "yt" matches "YouTube" with good score, "ytm" matches "YouTube Music" better than "My Playlists"
+  function fuzzyMatch(query, title) {
+    if (!query) return { match: true, score: 0 };
+    
+    const q = query.toLowerCase();
+    const t = title.toLowerCase();
+    
+    // Exact match at start gets highest score
+    if (t.startsWith(q)) return { match: true, score: 1000 };
+    
+    // Substring match gets high score
+    const subIdx = t.indexOf(q);
+    if (subIdx !== -1) return { match: true, score: 500 - subIdx };
+    
+    // Fuzzy character-by-character matching
+    let qIdx = 0;
+    let score = 0;
+    let lastMatchIdx = -1;
+    
+    for (let tIdx = 0; tIdx < t.length && qIdx < q.length; tIdx++) {
+      if (t[tIdx] === q[qIdx]) {
+        // Bonus for consecutive matches
+        const gap = tIdx - lastMatchIdx;
+        const bonus = gap === 1 ? 10 : gap <= 3 ? 5 : 1;
+        score += bonus;
+        lastMatchIdx = tIdx;
+        qIdx++;
+      }
+    }
+    
+    // All query chars must be matched
+    if (qIdx !== q.length) return { match: false, score: 0 };
+    
+    return { match: true, score };
+  }
+
   function sortPlaylistItems(sheetEl) {
     const list = getList(sheetEl);
     if (!list) {
@@ -133,15 +171,26 @@
     searchInput.autocomplete = "off";
 
     const triggerFilter = () => {
-      const query = searchInput.value.toLowerCase().trim();
+      const query = searchInput.value.trim();
       const list = getList(sheetEl);
       if (!list) return;
 
-      const items = list.querySelectorAll("toggleable-list-item-view-model");
+      const items = Array.from(list.querySelectorAll("toggleable-list-item-view-model"));
+      
+      // Score and filter items
+      const scoredItems = items.map((item) => {
+        const title = getPlaylistTitle(item);
+        const result = fuzzyMatch(query, title);
+        return { item, title, ...result };
+      });
+      
+      // Reorder by score (highest first) if there's a query
+      if (query) {
+        scoredItems.sort((a, b) => b.score - a.score);
+      }
+      
       let visibleCount = 0;
-      items.forEach((item) => {
-        const title = getPlaylistTitle(item).toLowerCase();
-        const match = !query || title.includes(query);
+      scoredItems.forEach(({ item, match }) => {
         if (match) {
           item.style.removeProperty("visibility");
           item.style.removeProperty("height");
