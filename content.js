@@ -132,6 +132,16 @@
     searchInput.placeholder = "Search playlists...";
     searchInput.autocomplete = "off";
 
+    // Create result counter badge
+    const resultCounter = document.createElement("span");
+    resultCounter.style.cssText = "position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; color: rgba(255,255,255,0.6); pointer-events: none; font-family: 'Roboto Mono', monospace;";
+    resultCounter.textContent = "";
+    
+    const searchInputContainer = document.createElement("div");
+    searchInputContainer.style.cssText = "position: relative;";
+    searchInputContainer.appendChild(searchInput);
+    searchInputContainer.appendChild(resultCounter);
+
     const triggerFilter = () => {
       const query = searchInput.value.toLowerCase().trim();
       const list = getList(sheetEl);
@@ -160,6 +170,14 @@
         }
       });
       noResults.style.display = visibleCount === 0 && query.length > 0 ? "block" : "none";
+      
+      // Update result counter badge
+      if (query.length > 0) {
+        resultCounter.textContent = visibleCount > 0 ? visibleCount + "/" + items.length : "0 results";
+        resultCounter.style.color = visibleCount === 0 ? "rgba(255,100,100,0.8)" : "rgba(100,255,100,0.8)";
+      } else {
+        resultCounter.textContent = "";
+      }
     };
 
     searchInput.addEventListener("input", triggerFilter);
@@ -245,7 +263,7 @@
     searchInput.addEventListener("pointerup", stopAll);
     searchInput.addEventListener("focus", (e) => e.stopPropagation());
 
-    headerContainer.appendChild(searchInput);
+    headerContainer.appendChild(searchInputContainer);
 
     const noResults = document.createElement("div");
     noResults.className = SEARCH_BAR_CLASS + "-empty";
