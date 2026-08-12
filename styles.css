@@ -63,3 +63,14 @@ html:not([dark]) toggleable-list-item-view-model.ytps-highlighted {
   background: rgba(6, 95, 212, 0.1) !important;
   outline-color: rgba(6, 95, 212, 0.4);
 }
+
+/* Checked playlists section — subtle divider before unchecked group */
+toggleable-list-item-view-model.ytps-first-unchecked {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+html[dark] toggleable-list-item-view-model.ytps-first-unchecked {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
