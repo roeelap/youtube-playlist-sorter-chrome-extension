@@ -72,12 +72,24 @@
   }
 
   function isCreatePlaylistButton(item) {
-    // The "New playlist" / "Create playlist" button is a non-toggleable item
-    // or contains a specific aria-label — keep it pinned to the bottom
     const btn = item.querySelector('button[aria-label*="playlist" i], button[aria-label*="new" i], button[aria-label*="create" i]');
     if (btn) return true;
     const title = getPlaylistTitle(item).toLowerCase();
     return title.includes("new playlist") || title.includes("create playlist");
+  }
+
+  function isPlaylistChecked(item) {
+    // Check if the playlist is already saved (has a checked checkbox)
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    if (checkbox && checkbox.checked) {
+      return true;
+    }
+    // Fallback: check for aria-checked attribute
+    const toggleEl = item.querySelector('[role="checkbox"]');
+    if (toggleEl && toggleEl.getAttribute("aria-checked") === "true") {
+      return true;
+    }
+    return false;
   }
 
   function sortPlaylistItems(sheetEl) {
@@ -97,16 +109,27 @@
     const pinned = allItems.filter(isCreatePlaylistButton);
     const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
 
-    playlists.sort((a, b) => {
-      const nameA = getPlaylistTitle(a).toLowerCase();
-      const nameB = getPlaylistTitle(b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    // Further separate checked (already-saved) playlists from unchecked ones
+    const checked = playlists.filter(isPlaylistChecked);
+    const unchecked = playlists.filter((item) => !isPlaylistChecked(item));
 
-    // Append sorted playlists first, then pinned buttons at the bottom
-    playlists.forEach((item) => list.appendChild(item));
+    // Sort each group alphabetically
+    const sortGroup = (group) => {
+      group.sort((a, b) => {
+        const nameA = getPlaylistTitle(a).toLowerCase();
+        const nameB = getPlaylistTitle(b).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    };
+
+    sortGroup(checked);
+    sortGroup(unchecked);
+
+    // Append: checked playlists first, then unchecked, then pinned buttons
+    checked.forEach((item) => list.appendChild(item));
+    unchecked.forEach((item) => list.appendChild(item));
     pinned.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
+    log("sortPlaylistItems: sorted", checked.length, "checked,", unchecked.length, "unchecked,", pinned.length, "pinned");
   }
 
   function injectSearchBar(sheetEl) {
@@ -165,24 +188,20 @@
     searchInput.addEventListener("input", triggerFilter);
 
     const stopAll = (e) => {
-      // Escape: clear search and show all items
       if (e.type === "keydown" && e.key === "Escape") {
         e.stopPropagation();
         e.stopImmediatePropagation();
         if (searchInput.value.length > 0) {
-          // First Escape clears the search
           searchInput.value = "";
           triggerFilter();
           e.preventDefault();
         }
-        // Second Escape (empty field) lets the event propagate to close the sheet naturally
         return;
       }
       e.stopPropagation();
       e.stopImmediatePropagation();
     };
 
-    // Keyboard navigation: ↑/↓ to move through visible playlists, Enter to toggle
     searchInput.addEventListener("keydown", (e) => {
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -217,7 +236,6 @@
         return;
       }
 
-      // Clear current highlight
       if (currentIndex >= 0) {
         visibleItems[currentIndex].dataset.ytpsHighlighted = "";
         visibleItems[currentIndex].classList.remove("ytps-highlighted");
@@ -298,7 +316,6 @@
 
     log("handleSheet: IS a playlist save sheet!");
 
-    // Re-open: sheet already processed, just re-sort and clear search
     if (sheetEl.dataset.ytpsSorted) {
       log("handleSheet: re-open detected, re-sorting");
       clearFilterStyles(sheetEl);
@@ -324,23 +341,37 @@
     log("waitForSheetContent: sheet empty, watching for children...");
     let attempts = 0;
     const maxAttempts = 30;
+    let timeoutHandle = null;
+    let contentObserver = null;
 
-    const contentObserver = new MutationObserver(() => {
+    const cleanup = () => {
+      if (contentObserver) {
+        contentObserver.disconnect();
+        contentObserver = null;
+      }
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+    };
+
+    contentObserver = new MutationObserver(() => {
       attempts++;
       if (isPlaylistSaveSheet(sheetEl)) {
         log("waitForSheetContent: content appeared after", attempts, "mutations");
-        contentObserver.disconnect();
+        cleanup();
         handleSheet(sheetEl);
       } else if (attempts >= maxAttempts) {
         log("waitForSheetContent: gave up after", maxAttempts, "mutations");
-        contentObserver.disconnect();
+        cleanup();
       }
     });
 
     contentObserver.observe(sheetEl, { childList: true, subtree: true });
 
-    setTimeout(() => {
-      contentObserver.disconnect();
+    timeoutHandle = setTimeout(() => {
+      log("waitForSheetContent: timeout cleanup");
+      cleanup();
     }, 5000);
   }
 
