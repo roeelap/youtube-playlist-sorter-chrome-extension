@@ -97,16 +97,23 @@
     const pinned = allItems.filter(isCreatePlaylistButton);
     const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
 
-    playlists.sort((a, b) => {
-      const nameA = getPlaylistTitle(a).toLowerCase();
-      const nameB = getPlaylistTitle(b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    const sortMode = localStorage.getItem("ytpsSortMode") || "alpha";
+    
+    // Sort only if in alphabetical mode
+    if (sortMode === "alpha") {
+      playlists.sort((a, b) => {
+        const nameA = getPlaylistTitle(a).toLowerCase();
+        const nameB = getPlaylistTitle(b).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      log("sortPlaylistItems: sorted", playlists.length, "playlists alphabetically");
+    } else {
+      log("sortPlaylistItems: keeping original order (recently saved mode)");
+    }
 
-    // Append sorted playlists first, then pinned buttons at the bottom
+    // Append sorted/original playlists first, then pinned buttons at the bottom
     playlists.forEach((item) => list.appendChild(item));
     pinned.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
   }
 
   function injectSearchBar(sheetEl) {
@@ -124,6 +131,24 @@
       return;
     }
     sheetEl.dataset.ytpsSorted = "1";
+
+    // Sort mode state
+    let sortMode = localStorage.getItem("ytpsSortMode") || "alpha"; // "alpha" or "recent"
+
+    const toggleButton = document.createElement("button");
+    toggleButton.className = SEARCH_BAR_CLASS + "-sort-toggle";
+    toggleButton.textContent = sortMode === "alpha" ? "A→Z" : "Recent";
+    toggleButton.title = "Toggle sort mode (A→Z or Recently Saved)";
+    toggleButton.type = "button";
+
+    toggleButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      sortMode = sortMode === "alpha" ? "recent" : "alpha";
+      localStorage.setItem("ytpsSortMode", sortMode);
+      toggleButton.textContent = sortMode === "alpha" ? "A→Z" : "Recent";
+      sortPlaylistItems(sheetEl);
+    });
 
     const searchInput = document.createElement("input");
     searchInput.type = "text";
