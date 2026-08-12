@@ -79,6 +79,37 @@
     const title = getPlaylistTitle(item).toLowerCase();
     return title.includes("new playlist") || title.includes("create playlist");
   }
+  // Sort mode management
+  const SORT_MODES = {
+    AZ: "a-z",       // Alphabetical A→Z
+    ZA: "z-a",       // Alphabetical Z→A
+    RECENT: "recent" // Recently added (YouTube's default order)
+  };
+  let currentSortMode = SORT_MODES.AZ;
+
+  function getSortModeLabel() {
+    switch (currentSortMode) {
+      case SORT_MODES.ZA: return "↓ Z→A";
+      case SORT_MODES.RECENT: return "📅 Recent";
+      default: return "↑ A→Z";
+    }
+  }
+
+  function applySortMode(items) {
+    if (currentSortMode === SORT_MODES.RECENT) {
+      // Keep YouTube's default order (no sort)
+      return items;
+    }
+
+    const sorted = [...items].sort((a, b) => {
+      const nameA = getPlaylistTitle(a).toLowerCase();
+      const nameB = getPlaylistTitle(b).toLowerCase();
+      const cmp = nameA.localeCompare(nameB);
+      return currentSortMode === SORT_MODES.ZA ? -cmp : cmp;
+    });
+    return sorted;
+  }
+
 
   function sortPlaylistItems(sheetEl) {
     const list = getList(sheetEl);
@@ -97,16 +128,13 @@
     const pinned = allItems.filter(isCreatePlaylistButton);
     const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
 
-    playlists.sort((a, b) => {
-      const nameA = getPlaylistTitle(a).toLowerCase();
-      const nameB = getPlaylistTitle(b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    // Apply the current sort mode
+    const sorted = applySortMode(playlists);
 
     // Append sorted playlists first, then pinned buttons at the bottom
-    playlists.forEach((item) => list.appendChild(item));
+    sorted.forEach((item) => list.appendChild(item));
     pinned.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
+    log("sortPlaylistItems: sorted", playlists.length, "playlists (mode:", currentSortMode, "), pinned", pinned.length, "buttons");
   }
 
   function injectSearchBar(sheetEl) {
@@ -125,12 +153,40 @@
     }
     sheetEl.dataset.ytpsSorted = "1";
 
+    // Create container for search bar + sort mode button
+    const searchContainer = document.createElement("div");
+    searchContainer.style.cssText = "display: flex; gap: 6px; align-items: center; padding: 0 12px;";
+
     const searchInput = document.createElement("input");
     searchInput.type = "text";
     searchInput.id = SEARCH_BAR_CLASS + "-" + (++sheetCounter);
     searchInput.className = SEARCH_BAR_CLASS;
     searchInput.placeholder = "Search playlists...";
     searchInput.autocomplete = "off";
+    searchInput.style.flex = "1";
+
+    const sortModeBtn = document.createElement("button");
+    sortModeBtn.textContent = getSortModeLabel();
+    sortModeBtn.style.cssText = "padding: 6px 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; white-space: nowrap; font-family: inherit;";
+    sortModeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      // Cycle through sort modes
+      const modes = Object.values(SORT_MODES);
+      const idx = modes.indexOf(currentSortMode);
+      currentSortMode = modes[(idx + 1) % modes.length];
+      sortModeBtn.textContent = getSortModeLabel();
+      sortPlaylistItems(sheetEl);
+      log("Sort mode changed to:", currentSortMode);
+    });
+    
+    searchInput.addEventListener("focus", (e) => {
+      e.stopPropagation();
+      sortModeBtn.focus(); // Don't steal focus from button if clicked
+    });
+
+    searchContainer.appendChild(searchInput);
+    searchContainer.appendChild(sortModeBtn);
 
     const triggerFilter = () => {
       const query = searchInput.value.toLowerCase().trim();
@@ -245,7 +301,7 @@
     searchInput.addEventListener("pointerup", stopAll);
     searchInput.addEventListener("focus", (e) => e.stopPropagation());
 
-    headerContainer.appendChild(searchInput);
+    headerContainer.appendChild(searchContainer);
 
     const noResults = document.createElement("div");
     noResults.className = SEARCH_BAR_CLASS + "-empty";
