@@ -97,16 +97,25 @@
     const pinned = allItems.filter(isCreatePlaylistButton);
     const playlists = allItems.filter((item) => !isCreatePlaylistButton(item));
 
-    playlists.sort((a, b) => {
-      const nameA = getPlaylistTitle(a).toLowerCase();
-      const nameB = getPlaylistTitle(b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    // For large lists (50+ items), defer sort to avoid blocking UI
+    const scheduleSort = () => {
+      playlists.sort((a, b) => {
+        const nameA = getPlaylistTitle(a).toLowerCase();
+        const nameB = getPlaylistTitle(b).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
 
-    // Append sorted playlists first, then pinned buttons at the bottom
-    playlists.forEach((item) => list.appendChild(item));
-    pinned.forEach((item) => list.appendChild(item));
-    log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
+      // Append sorted playlists first, then pinned buttons at the bottom
+      playlists.forEach((item) => list.appendChild(item));
+      pinned.forEach((item) => list.appendChild(item));
+      log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
+    };
+
+    if (playlists.length > 50) {
+      requestIdleCallback(scheduleSort, { timeout: 500 });
+    } else {
+      scheduleSort();
+    }
   }
 
   function injectSearchBar(sheetEl) {
