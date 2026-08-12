@@ -109,6 +109,30 @@
     log("sortPlaylistItems: sorted", playlists.length, "playlists, pinned", pinned.length, "buttons");
   }
 
+
+  // Fuzzy match: returns true if query roughly matches title.
+  // First tries substring, then falls back to a sliding-window
+  // character-overlap score (handles typos, missing letters).
+  function fuzzyMatch(title, query) {
+    if (!query) return true;
+    if (title.includes(query)) return true;
+
+    // Bigram similarity — fast and good enough for playlist names
+    function bigrams(str) {
+      const set = new Set();
+      for (let i = 0; i < str.length - 1; i++) set.add(str.slice(i, i + 2));
+      return set;
+    }
+    if (query.length < 2) return title.startsWith(query);
+
+    const tBigrams = bigrams(title);
+    const qBigrams = bigrams(query);
+    let intersection = 0;
+    qBigrams.forEach((bg) => { if (tBigrams.has(bg)) intersection++; });
+    const similarity = (2 * intersection) / (tBigrams.size + qBigrams.size);
+    return similarity >= 0.4; // threshold: tune as needed
+  }
+
   function injectSearchBar(sheetEl) {
     const headerContainer = sheetEl.querySelector(
       ".ytContextualSheetLayoutHeaderContainer"
@@ -141,7 +165,7 @@
       let visibleCount = 0;
       items.forEach((item) => {
         const title = getPlaylistTitle(item).toLowerCase();
-        const match = !query || title.includes(query);
+        const match = !query || fuzzyMatch(title, query);
         if (match) {
           item.style.removeProperty("visibility");
           item.style.removeProperty("height");
