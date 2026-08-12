@@ -129,8 +129,30 @@
     searchInput.type = "text";
     searchInput.id = SEARCH_BAR_CLASS + "-" + (++sheetCounter);
     searchInput.className = SEARCH_BAR_CLASS;
-    searchInput.placeholder = "Search playlists...";
+    searchInput.placeholder = "Search playlists... (try acronyms: wl → Watch Later)";
     searchInput.autocomplete = "off";
+
+    // Smart match: substring OR acronym (e.g. "wl" matches "Watch Later")
+    function matchesQuery(title, query) {
+      if (!query) return true;
+      const t = title.toLowerCase();
+      const q = query.toLowerCase();
+      // Direct substring match
+      if (t.includes(q)) return true;
+      // Acronym match: query chars must match first letter of each word in order
+      if (q.length >= 2) {
+        const words = t.split(/\s+/).filter(Boolean);
+        const initials = words.map((w) => w[0]).join("");
+        if (initials.includes(q)) return true;
+        // Also try sequential match across word starts
+        let qi = 0;
+        for (let wi = 0; wi < words.length && qi < q.length; wi++) {
+          if (words[wi][0] === q[qi]) qi++;
+        }
+        if (qi === q.length) return true;
+      }
+      return false;
+    }
 
     const triggerFilter = () => {
       const query = searchInput.value.toLowerCase().trim();
@@ -141,7 +163,7 @@
       let visibleCount = 0;
       items.forEach((item) => {
         const title = getPlaylistTitle(item).toLowerCase();
-        const match = !query || title.includes(query);
+        const match = matchesQuery(title, query);
         if (match) {
           item.style.removeProperty("visibility");
           item.style.removeProperty("height");
